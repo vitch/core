@@ -148,6 +148,7 @@ class Kohana_Core {
 	 * `string`  | base_url   | set the base URL for the application           | `"/"`
 	 * `string`  | index_file | set the index.php file name                    | `"index.php"`
 	 * `string`  | cache_dir  | set the cache directory path                   | `APPPATH."cache"`
+	 * `closure` | on_cache_unwritable  | A callback for if the cache can't be written | FALSE
 	 *
 	 * @throws  Kohana_Exception
 	 * @param   array   global settings
@@ -249,16 +250,20 @@ class Kohana_Core {
 			Kohana::$cache_dir = APPPATH.'cache';
 		}
 
-		if ( ! is_writable(Kohana::$cache_dir))
-		{
-			throw new Kohana_Exception('Directory :dir must be writable',
-				array(':dir' => Kohana::debug_path(Kohana::$cache_dir)));
-		}
-
 		if (isset($settings['caching']))
 		{
 			// Enable or disable internal caching
 			Kohana::$caching = (bool) $settings['caching'];
+		}
+
+		if ( ! is_writable(Kohana::$cache_dir))
+		{
+			if (isset($settings['on_cache_unwritable']) && !Kohana::$caching) {
+				call_user_func($settings['on_cache_unwritable']);
+			} else {
+				throw new Kohana_Exception('Directory :dir must be writable',
+					array(':dir' => Kohana::debug_path(Kohana::$cache_dir)));
+			}
 		}
 
 		if (Kohana::$caching === TRUE)
