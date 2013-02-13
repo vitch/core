@@ -195,6 +195,7 @@ class Kohana_Core {
 	 * `string`  | error_view | The view to use to display errors.  Only used when `errors` is `TRUE`. | `"kohana/error"`
 	 * `boolean` | profile    | Whether to enable the [Profiler](kohana/profiling). <br /> <br />Recommended setting: `TRUE` while developing, `FALSE` on production servers. | `TRUE`
 	 * `boolean` | caching    | Cache file locations to speed up [Kohana::find_file].  This has nothing to do with [Kohana::cache], [Fragments](kohana/fragments) or the [Cache module](cache).  <br /> <br />  Recommended setting: `FALSE` while developing, `TRUE` on production servers. | `FALSE`
+	 * `string` | on_cache_unwritable  | A callback for if the cache can't be written | FALSE
 	 *
 	 * @throws  Kohana_Exception
 	 * @param   array   Array of settings.  See above.
@@ -304,12 +305,6 @@ class Kohana_Core {
 			Kohana::$cache_dir = APPPATH.'cache';
 		}
 
-		if ( ! is_writable(Kohana::$cache_dir))
-		{
-			throw new Kohana_Exception('Directory :dir must be writable',
-				array(':dir' => Kohana::debug_path(Kohana::$cache_dir)));
-		}
-
 		if (isset($settings['cache_life']))
 		{
 			// Set the default cache lifetime
@@ -320,6 +315,16 @@ class Kohana_Core {
 		{
 			// Enable or disable internal caching
 			Kohana::$caching = (bool) $settings['caching'];
+		}
+
+		if ( ! is_writable(Kohana::$cache_dir))
+		{
+			if (isset($settings['on_cache_unwritable']) && !Kohana::$caching) {
+				call_user_func($settings['on_cache_unwritable']);
+			} else {
+				throw new Kohana_Exception('Directory :dir must be writable',
+					array(':dir' => Kohana::debug_path(Kohana::$cache_dir)));
+			}
 		}
 
 		if (Kohana::$caching === TRUE)
